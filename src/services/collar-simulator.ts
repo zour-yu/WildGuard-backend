@@ -157,27 +157,55 @@ export class CollarSimulator {
     if (isBreaching && breachedZone) {
       console.log(`[ALERT] GEOFENCE BREACH DETECTED for ${telemetry.animalName} at [${lat}, ${lng}]!`);
 
-      // Prevent continuous duplicate alerts if an active alert already exists within the last 30 minutes
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-      const existingActiveAlert = await AlertDispatch.findOne({
-        collarId: telemetry.collarId,
-        status: { $in: ['ACTIVE', 'ACCEPTED'] },
-        createdAt: { $gte: thirtyMinutesAgo },
-      }).exec();
+      const mongoose = await import('mongoose');
+      const isDbConnected = mongoose.default.connection.readyState === 1;
 
-      if (existingActiveAlert) {
-        // Update coordinates of the current active dispatch
-        existingActiveAlert.location = [lat, lng];
-        await existingActiveAlert.save();
-        breachAlert = existingActiveAlert;
-      } else {
-        // Pick camera trap image verification snapshot
+      if (isDbConnected) {
+        try {
+          const existingActiveAlert = await AlertDispatch.findOne({
+            collarId: telemetry.collarId,
+            status: { $in: ['ACTIVE', 'ACCEPTED'] },
+            createdAt: { $gte: thirtyMinutesAgo },
+          }).maxTimeMS(2000).exec();
+
+          if (existingActiveAlert) {
+            existingActiveAlert.location = [lat, lng];
+            await existingActiveAlert.save();
+            breachAlert = existingActiveAlert;
+          } else {
+            const randomImg =
+              CAMERA_TRAP_SNAPSHOTS[
+                Math.floor(Math.random() * CAMERA_TRAP_SNAPSHOTS.length)
+              ];
+
+            breachAlert = await AlertDispatch.create({
+              animalId: this.DEFAULT_ANIMAL.animalId,
+              animalName: this.DEFAULT_ANIMAL.animalName,
+              species: this.DEFAULT_ANIMAL.species,
+              collarId: this.DEFAULT_ANIMAL.collarId,
+              geofenceId: breachedZone._id,
+              zoneName: breachedZone.zoneName,
+              riskLevel: breachedZone.riskLevel,
+              location: [lat, lng],
+              status: 'ACTIVE',
+              cameraTrapImageUrl: randomImg,
+              notes: `Automated IoT Geofence Alert: Elephant entered buffer zone with high agricultural conflict probability.`,
+            });
+          }
+        } catch (dbErr) {
+          console.warn('[CollarSimulator] Error updating DB alert, fallback to ephemeral breach alert:', dbErr);
+        }
+      }
+
+      // If DB was not connected or threw, create ephemeral alert object
+      if (!breachAlert) {
         const randomImg =
           CAMERA_TRAP_SNAPSHOTS[
             Math.floor(Math.random() * CAMERA_TRAP_SNAPSHOTS.length)
           ];
-
-        breachAlert = await AlertDispatch.create({
+        breachAlert = {
+          _id: `ALERT-${Date.now().toString().slice(-6)}`,
           animalId: this.DEFAULT_ANIMAL.animalId,
           animalName: this.DEFAULT_ANIMAL.animalName,
           species: this.DEFAULT_ANIMAL.species,
@@ -188,10 +216,14 @@ export class CollarSimulator {
           location: [lat, lng],
           status: 'ACTIVE',
           cameraTrapImageUrl: randomImg,
-          notes: `Automated IoT Geofence Alert: Elephant entered buffer zone with high agricultural conflict probability.`,
-        });
+          notes: `Automated IoT Geofence Alert: Elephant entered buffer zone adjoining village farmlands.`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as any;
+      }
 
-        // 5. Broadcast animal:breach event via Socket.io
+      // 5. Broadcast animal:breach event via Socket.io
+      if (breachAlert) {
         emitAnimalBreach({
           alertId: breachAlert._id.toString(),
           animalId: breachAlert.animalId,
@@ -202,7 +234,7 @@ export class CollarSimulator {
           zoneName: breachAlert.zoneName,
           riskLevel: breachAlert.riskLevel,
           cameraTrapImageUrl: breachAlert.cameraTrapImageUrl,
-          timestamp: breachAlert.createdAt.toISOString(),
+          timestamp: (breachAlert.createdAt ? new Date(breachAlert.createdAt) : new Date()).toISOString(),
           status: breachAlert.status,
           distanceToSettlementKm: 0.45,
         });
