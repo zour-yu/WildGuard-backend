@@ -169,7 +169,10 @@ export const submitAppReport = async (req: Request, res: Response) => {
       ? `[${category || 'Alert'}] ${description}`
       : `MOBILE APP ALERT: ${category || 'Unknown'}`;
 
-    const hotspot = GALWALA_HOTSPOTS[Math.floor(Math.random() * GALWALA_HOTSPOTS.length)];
+    let hotspot = GALWALA_HOTSPOTS.find(h => h.location === location);
+    if (!hotspot) {
+      hotspot = GALWALA_HOTSPOTS[Math.floor(Math.random() * GALWALA_HOTSPOTS.length)];
+    }
     const lat = hotspot.lat + (Math.random() - 0.5) * 0.008;
     const lng = hotspot.lng + (Math.random() - 0.5) * 0.008;
 
