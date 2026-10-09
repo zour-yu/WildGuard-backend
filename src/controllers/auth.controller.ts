@@ -3,7 +3,7 @@ import User from '../models/User';
 
 export const syncUser = async (req: Request, res: Response) => {
   try {
-    const { firebaseId, email, name, role } = req.body;
+    const { firebaseId, email, name, role, address, district, province } = req.body;
 
     if (!firebaseId || !email) {
       return res.status(400).json({ message: 'Missing required fields' });
@@ -16,7 +16,10 @@ export const syncUser = async (req: Request, res: Response) => {
         firebaseId,
         email,
         name: name || 'Citizen User',
-        role: role || 'Citizen'
+        role: role || 'Citizen',
+        address,
+        district,
+        province
       });
       await user.save();
     } else {
