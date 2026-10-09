@@ -80,6 +80,17 @@ const GALWALA_HOTSPOTS = [
   { location: 'Sector 1: Northern Ridge', lat: 6.855, lng: 80.975 },
 ];
 
+const determinePriority = (text: string): 'HIGH' | 'MEDIUM' | 'LOW' => {
+  const lower = text.toLowerCase();
+  if (lower.includes('injury') || lower.includes('danger') || lower.includes('attack') || lower.includes('charging') || lower.includes('sos') || lower.includes('aggressive')) {
+    return 'HIGH';
+  }
+  if (lower.includes('sighting') || lower.includes('spotted') || lower.includes('crossing') || lower.includes('near')) {
+    return 'MEDIUM';
+  }
+  return 'LOW'; // crop damage, fences, tracks, and others
+};
+
 export const mockSms = async (req: Request, res: Response) => {
   try {
     const { body, from } = req.body;
@@ -91,11 +102,12 @@ export const mockSms = async (req: Request, res: Response) => {
     const lng = hotspot.lng + (Math.random() - 0.5) * 0.008;
 
     let newConflictRecord: any;
+    const priority = determinePriority(text);
 
     if (mongoose.connection.readyState === 1) {
       const newConflict = new Conflict({
         source: 'SMS',
-        priority: 'HIGH',
+        priority: priority,
         status: 'UNREAD',
         description: text,
         reporter: sender,
@@ -109,7 +121,7 @@ export const mockSms = async (req: Request, res: Response) => {
       newConflictRecord = {
         _id: 'conf-sim-' + Date.now(),
         source: 'SMS',
-        priority: 'HIGH',
+        priority: priority,
         status: 'UNREAD',
         description: text,
         reporter: sender,
@@ -162,11 +174,12 @@ export const submitAppReport = async (req: Request, res: Response) => {
     const lng = hotspot.lng + (Math.random() - 0.5) * 0.008;
 
     let newConflictRecord: any;
+    const priority = determinePriority(finalDescription);
 
     if (mongoose.connection.readyState === 1) {
       const newConflict = new Conflict({
         source: 'App',
-        priority: 'HIGH',
+        priority: priority,
         status: 'UNREAD',
         description: finalDescription,
         reporter: finalReporter,
@@ -181,7 +194,7 @@ export const submitAppReport = async (req: Request, res: Response) => {
       newConflictRecord = {
         _id: 'conf-app-' + Date.now(),
         source: 'App',
-        priority: 'HIGH',
+        priority: priority,
         status: 'UNREAD',
         description: finalDescription,
         reporter: finalReporter,
