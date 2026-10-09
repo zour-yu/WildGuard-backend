@@ -5,6 +5,8 @@ import app from './app';
 import { initializeAlertSocket } from './sockets/alert.socket';
 import { CollarSimulator } from './services/collar-simulator';
 
+import './config/firebase.config';
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;

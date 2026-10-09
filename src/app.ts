@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import telemetryRoutes from './routes/telemetry.routes';
 import conflictRoutes from './routes/conflict.routes';
 import authRoutes from './routes/auth.routes';
+import incidentRoutes from './modules/incidents/incident.routes';
 
 dotenv.config();
 
@@ -16,14 +17,18 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '15mb' })); // Support base64 photo payloads
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // API Health Check
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'OK',
-    service: 'WildGuard Telemetry & Dispatch API',
-    useCase: 'UC-04: Respond to Animal Risk Alert',
+    service: 'WildGuard Telemetry & Incident API',
+    useCases: [
+      'UC-01: Record Wildlife Incident',
+      'UC-04: Respond to Animal Risk Alert',
+    ],
     timestamp: new Date().toISOString(),
   });
 });
@@ -32,5 +37,6 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api', telemetryRoutes);
 app.use('/api/conflicts', conflictRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/incidents', incidentRoutes);
 
 export default app;
