@@ -24,3 +24,17 @@ export const verifyFirebaseToken = async (req: AuthenticatedRequest, res: Respon
     return res.status(401).json({ message: 'Unauthorized: Token verification failed' });
   }
 };
+
+export const optionalFirebaseToken = async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await authAdmin.verifyIdToken(idToken);
+      req.user = decodedToken;
+    }
+  } catch (error) {
+    // In demo / dev environment, allow request to proceed without authenticated user
+  }
+  next();
+};
