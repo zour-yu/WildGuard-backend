@@ -1,14 +1,17 @@
 import { Router } from 'express';
-import { getConflicts, mockSms, submitAppReport } from '../controllers/conflict.controller';
-import { verifyFirebaseToken } from '../middleware/auth.middleware';
+import { getConflicts, mockSms, submitAppReport, updateConflictStatus } from '../controllers/conflict.controller';
+import { optionalFirebaseToken } from '../middleware/auth.middleware';
 import { upload } from '../config/cloudinary.config';
 
 const router = Router();
 
-// Protect the GET route with Firebase Auth
-router.get('/', verifyFirebaseToken, getConflicts);
+// Retrieve conflicts (verifies token if provided, falls through in dev/demo)
+router.get('/', optionalFirebaseToken, getConflicts);
 
-// Leave mock-sms unprotected (since Twilio won't have a Firebase token in production)
+// Update status / acknowledge / dispatch conflict
+router.patch('/:id/status', updateConflictStatus);
+
+// Leave mock-sms unprotected (for simulators and Twilio webhooks)
 router.post('/mock-sms', mockSms);
 
 // App report from citizens (includes image upload)
