@@ -2,6 +2,8 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import telemetryRoutes from './routes/telemetry.routes';
+import conflictRoutes from './routes/conflict.routes';
+import authRoutes from './routes/auth.routes';
 import incidentRoutes from './modules/incidents/incident.routes';
 
 dotenv.config();
@@ -33,6 +35,8 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Mount Routes under /api
 app.use('/api', telemetryRoutes);
+app.use('/api/conflicts', conflictRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/incidents', incidentRoutes);
 
 export default app;
