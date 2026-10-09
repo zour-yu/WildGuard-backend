@@ -212,20 +212,48 @@ export class TelemetryController {
   }
 
   /**
-   * GET /api/rangers
-   * Returns list of available field rangers.
+   * GET /api/dispatches/history
+   * Retrieves all logged dispatches and incident history (including RESOLVED and REJECTED).
    */
-  public static async getAvailableRangers(req: Request, res: Response): Promise<void> {
+  public static async getDispatchHistory(req: Request, res: Response): Promise<void> {
     try {
-      const rangers = DispatchService.getAvailableRangers();
+      const history = await DispatchService.getDispatchHistory();
       res.status(200).json({
         success: true,
-        data: rangers,
+        count: history.length,
+        data: history,
       });
     } catch (error: any) {
+      console.error('[TelemetryController] getDispatchHistory error:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to retrieve available rangers',
+        message: 'Failed to retrieve dispatch history',
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * GET /api/rangers/recommend?lat=6.832&lng=80.975
+   * Calculates distance from incident location to all available rangers and highlights nearest.
+   */
+  public static async getRecommendedRangers(req: Request, res: Response): Promise<void> {
+    try {
+      const lat = parseFloat(req.query.lat as string) || 6.832;
+      const lng = parseFloat(req.query.lng as string) || 80.975;
+      const recommended = DispatchService.recommendRangers([lat, lng]);
+
+      res.status(200).json({
+        success: true,
+        incidentLocation: [lat, lng],
+        count: recommended.length,
+        data: recommended,
+      });
+    } catch (error: any) {
+      console.error('[TelemetryController] getRecommendedRangers error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to calculate ranger recommendations',
         error: error.message,
       });
     }

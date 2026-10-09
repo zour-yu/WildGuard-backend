@@ -82,12 +82,33 @@ export class GeofenceService {
     lat: number,
     lng: number
   ): Promise<IGeofenceZone | null> {
-    const activeZones = await GeofenceZone.find({ isActive: true }).exec();
+    try {
+      let activeZones: IGeofenceZone[] = [];
 
-    for (const zone of activeZones) {
-      const breached = this.isPointInPolygon([lat, lng], zone.coordinates);
-      if (breached) {
-        return zone;
+      // Check if MongoDB is connected (readyState === 1)
+      const mongoose = await import('mongoose');
+      if (mongoose.default.connection.readyState === 1) {
+        activeZones = await GeofenceZone.find({ isActive: true })
+          .maxTimeMS(2000)
+          .exec();
+      } else {
+        // Fallback to built-in buffer zones if MongoDB is connecting or offline
+        activeZones = this.getDefaultFallbackZones();
+      }
+
+      for (const zone of activeZones) {
+        const breached = this.isPointInPolygon([lat, lng], zone.coordinates);
+        if (breached) {
+          return zone;
+        }
+      }
+    } catch (err) {
+      console.warn('[GeofenceService] DB query failed, using fallback zones:', err);
+      const fallbackZones = this.getDefaultFallbackZones();
+      for (const zone of fallbackZones) {
+        if (this.isPointInPolygon([lat, lng], zone.coordinates)) {
+          return zone;
+        }
       }
     }
 
@@ -95,9 +116,53 @@ export class GeofenceService {
   }
 
   /**
+   * Default fallback zones in case database is temporarily unreachable.
+   */
+  public static getDefaultFallbackZones(): any[] {
+    return [
+      {
+        _id: 'zone-default-01',
+        zoneName: 'Perimeter Buffer Zone A - Medawachchiya Farmlands',
+        description: 'Critical electric fence boundary adjoining village agricultural crops.',
+        riskLevel: 'CRITICAL',
+        coordinates: [
+          [6.8300, 80.9730],
+          [6.8300, 80.9880],
+          [6.8410, 80.9880],
+          [6.8410, 80.9730],
+        ],
+        bufferZoneKm: 1.5,
+        isActive: true,
+      },
+      {
+        _id: 'zone-default-02',
+        zoneName: 'Corridor Buffer Zone B - Railway Sanctuary Crossing',
+        description: 'Railway reserve corridor with high-speed train collision risk.',
+        riskLevel: 'HIGH',
+        coordinates: [
+          [6.8450, 80.9800],
+          [6.8450, 80.9950],
+          [6.8550, 80.9950],
+          [6.8550, 80.9800],
+        ],
+        bufferZoneKm: 2.0,
+        isActive: true,
+      },
+    ];
+  }
+
+  /**
    * Retrieves all registered geofence zones.
    */
   public static async getAllZones(): Promise<IGeofenceZone[]> {
-    return GeofenceZone.find().sort({ createdAt: -1 }).exec();
+    try {
+      const mongoose = await import('mongoose');
+      if (mongoose.default.connection.readyState === 1) {
+        return await GeofenceZone.find().sort({ createdAt: -1 }).maxTimeMS(2000).exec();
+      }
+    } catch (e) {
+      // ignore
+    }
+    return this.getDefaultFallbackZones() as unknown as IGeofenceZone[];
   }
 }
