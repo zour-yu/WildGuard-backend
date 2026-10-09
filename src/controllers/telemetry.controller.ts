@@ -90,7 +90,7 @@ export class TelemetryController {
   public static async dispatchRanger(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { rangerId, rangerName, notes } = req.body;
+      const { rangerId, rangerName, notes, alertData } = req.body;
 
       if (!rangerId) {
         res.status(400).json({
@@ -104,7 +104,8 @@ export class TelemetryController {
         id,
         rangerId,
         rangerName,
-        notes
+        notes,
+        alertData
       );
 
       res.status(200).json({
