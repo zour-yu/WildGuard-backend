@@ -242,7 +242,7 @@ export class TelemetryController {
     try {
       const lat = parseFloat(req.query.lat as string) || 6.832;
       const lng = parseFloat(req.query.lng as string) || 80.975;
-      const recommended = DispatchService.recommendRangers([lat, lng]);
+      const recommended = await DispatchService.recommendRangers([lat, lng]);
 
       res.status(200).json({
         success: true,

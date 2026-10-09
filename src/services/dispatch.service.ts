@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { AlertDispatch, IAlertDispatch, AlertStatus } from '../models/AlertDispatch';
 import { emitDispatchUpdate } from '../sockets/alert.socket';
+import User from '../models/User';
 
 export interface RangerInfo {
   rangerId: string;
@@ -141,10 +142,32 @@ export class DispatchService {
   /**
    * Recommends field rangers sorted by distance from the breach coordinate.
    */
-  public static recommendRangers(
+  public static async recommendRangers(
     breachLocation: [number, number]
-  ): RecommendedRanger[] {
-    const rangersWithDistance = MOCK_RANGERS.map((ranger) => {
+  ): Promise<RecommendedRanger[]> {
+    const dbRangers = await User.find({ role: 'Ranger' }).exec();
+
+    // Map DB rangers to RangerInfo, mixing in some mock state (location, battery)
+    // since the User model doesn't store active telemetry.
+    const activeRangers: RangerInfo[] = dbRangers.map((r, i) => {
+      // Create a deterministic offset from breach location for realistic display
+      const latOffset = (i % 2 === 0 ? 1 : -1) * 0.01 * (i + 1);
+      const lngOffset = (i % 3 === 0 ? 1 : -1) * 0.01 * (i + 1);
+      
+      return {
+        rangerId: r._id.toString(),
+        name: r.name,
+        callsign: `Unit-${r.name.split(' ')[0]}-${i+1}`,
+        status: i % 4 === 0 ? 'ON_PATROL' : 'AVAILABLE',
+        location: [breachLocation[0] + latOffset, breachLocation[1] + lngOffset],
+        batteryLevel: 100 - (i * 7),
+      };
+    });
+
+    // Fallback to MOCK_RANGERS if no real rangers found
+    const rangersToUse = activeRangers.length > 0 ? activeRangers : MOCK_RANGERS;
+
+    const rangersWithDistance = rangersToUse.map((ranger) => {
       const distanceKm = this.calculateDistanceKm(breachLocation, ranger.location);
       // Rough field speed estimate: 30 km/h in reserve terrain
       const etaMinutes = Math.max(2, Math.ceil((distanceKm / 30) * 60));
