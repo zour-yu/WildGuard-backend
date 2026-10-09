@@ -15,6 +15,7 @@ import { Incident, IncidentType } from './incident.model';
 export interface IIncidentRepository {
   create(incident: Incident): Promise<Incident>;
   findById(id: string): Promise<Incident | null>;
+  update(id: string, updates: Partial<Incident>): Promise<Incident | null>;
   findAll(filter?: { type?: IncidentType; status?: string }): Promise<Incident[]>;
   createBatch(
     incidents: Incident[]
@@ -46,6 +47,22 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
 
   public async findById(id: string): Promise<Incident | null> {
     return this.storage.get(id) || null;
+  }
+
+  public async update(
+    id: string,
+    updates: Partial<Incident>
+  ): Promise<Incident | null> {
+    const existing = this.storage.get(id);
+    if (!existing) return null;
+
+    const updated: Incident = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.storage.set(id, updated);
+    return updated;
   }
 
   public async findAll(filter?: {
@@ -105,29 +122,29 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
       {
         id: 'INC-2026-001',
         type: 'SNARE',
-        coordinates: [6.834, 80.988],
-        description: 'Heavy steel wire snare found tethered to teak trunk near watering channel.',
+        coordinates: [6.822, 80.978], // Sector 4 (Farmland 8A Solar Fence border)
+        description: 'Heavy steel wire snare found tethered to teak trunk near Farmland Grid 8A boundary.',
         photoUrl: 'https://images.unsplash.com/photo-1575550959106-5a7defe28b56?auto=format&fit=crop&w=400&q=80',
         metadata: {
-          riskLevel: 'HIGH',
+          riskLevel: 'CRITICAL',
           snareCount: 2,
           wireType: 'STEEL_CABLE',
           isArmed: true,
-          targetSpecies: 'Wild Boar / Deer',
+          targetSpecies: 'Asian Elephant / Wild Boar',
         },
-        reporterId: 'RNG-001',
-        reporterName: 'Sgt. Tharaka Bandara',
-        status: 'DISPATCHED',
-        timestamp: new Date(Date.now() - 3600000 * 4),
+        reporterId: 'RNG-003',
+        reporterName: 'Officer Chaminda Perera',
+        status: 'RECORDED',
+        timestamp: new Date(Date.now() - 3600000 * 2),
         syncedFromOffline: false,
-        createdAt: new Date(Date.now() - 3600000 * 4),
-        updatedAt: new Date(Date.now() - 3600000 * 4),
+        createdAt: new Date(Date.now() - 3600000 * 2),
+        updatedAt: new Date(Date.now() - 3600000 * 2),
       },
       {
         id: 'INC-2026-002',
         type: 'CARCASS',
-        coordinates: [6.842, 80.975],
-        description: 'Adult sambar deer carcass discovered in Northern buffer scrubland.',
+        coordinates: [6.855, 80.972], // Sector 1 (North Ridge Highlands)
+        description: 'Adult sambar deer carcass discovered in Northern buffer ridge scrubland.',
         photoUrl: 'https://images.unsplash.com/photo-1547721064-da6cfb341d50?auto=format&fit=crop&w=400&q=80',
         metadata: {
           decompositionState: 'EARLY_DECOMP',
@@ -135,13 +152,36 @@ export class InMemoryIncidentRepository implements IIncidentRepository {
           causeOfDeath: 'POACHING',
           estimatedAgeDays: 1,
         },
+        reporterId: 'RNG-001',
+        reporterName: 'Sgt. Tharaka Bandara',
+        status: 'DISPATCHED',
+        assignedRangerId: 'RNG-001',
+        assignedRangerName: 'Sgt. Tharaka Bandara',
+        dispatchNotes: 'Investigating poaching trail and sweeping Northern Ridge for secondary traps.',
+        timestamp: new Date(Date.now() - 3600000 * 6),
+        syncedFromOffline: true,
+        createdAt: new Date(Date.now() - 3600000 * 6),
+        updatedAt: new Date(Date.now() - 3600000 * 6),
+      },
+      {
+        id: 'INC-2026-003',
+        type: 'ILLEGAL_CAMPSITE',
+        coordinates: [6.830, 81.008], // Sector 6 (Eastern Wilderness Corridor)
+        description: 'Smoldering campfire remains and poacher makeshift shelter found along eastern migration corridor.',
+        photoUrl: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=400&q=80',
+        metadata: {
+          tentCount: 1,
+          campStatus: 'RECENTLY_ABANDONED',
+          fireHazard: 'HIGH',
+          evidenceFound: 'Cookware, flashlight batteries, footprint tracks heading North-East',
+        },
         reporterId: 'RNG-002',
         reporterName: 'Officer Nimal Silva',
-        status: 'UNDER_INVESTIGATION',
-        timestamp: new Date(Date.now() - 3600000 * 8),
-        syncedFromOffline: true,
-        createdAt: new Date(Date.now() - 3600000 * 8),
-        updatedAt: new Date(Date.now() - 3600000 * 8),
+        status: 'RECORDED',
+        timestamp: new Date(Date.now() - 3600000 * 1),
+        syncedFromOffline: false,
+        createdAt: new Date(Date.now() - 3600000 * 1),
+        updatedAt: new Date(Date.now() - 3600000 * 1),
       },
     ];
 

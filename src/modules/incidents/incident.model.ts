@@ -2,10 +2,8 @@
  * UC-01: Record Wildlife Incident - Model & DTO Definitions
  * 
  * SOLID Principles Applied:
- * - Single Responsibility Principle (SRP): This file exclusively defines data contracts,
- *   domain types, and interfaces representing Wildlife Incidents.
- * - Interface Segregation Principle (ISP): Metadata contracts are segregated per incident type
- *   (Snare, Carcass, Illegal Campsite) so clients only depend on the fields they require.
+ * - Single Responsibility Principle (SRP): Exclusively defines data contracts & domain models.
+ * - Interface Segregation Principle (ISP): Metadata contracts are segregated per incident type.
  */
 
 export type IncidentType =
@@ -78,6 +76,13 @@ export interface Incident {
   status: IncidentStatus;
   timestamp: Date;
   syncedFromOffline: boolean;
+  // Dispatch & Operational Resolution fields
+  assignedRangerId?: string;
+  assignedRangerName?: string;
+  dispatchNotes?: string;
+  dispatchedAt?: Date;
+  resolutionNotes?: string;
+  resolvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,7 +91,7 @@ export interface Incident {
  * Data Transfer Objects (DTOs)
  */
 export interface CreateIncidentDTO {
-  id?: string; // Optional client-generated UUID for offline idempotency
+  id?: string;
   type: IncidentType;
   coordinates: [number, number];
   description: string;
@@ -95,6 +100,16 @@ export interface CreateIncidentDTO {
   reporterId?: string;
   reporterName?: string;
   timestamp?: string | Date;
+}
+
+export interface DispatchIncidentDTO {
+  rangerId: string;
+  rangerName?: string;
+  notes?: string;
+}
+
+export interface ResolveIncidentDTO {
+  resolutionNotes: string;
 }
 
 export interface SyncIncidentsDTO {

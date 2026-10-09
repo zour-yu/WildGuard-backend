@@ -202,4 +202,74 @@ describe('IncidentController (UC-01)', () => {
 
     expect(statusMock).toHaveBeenCalledWith(500);
   });
+
+  it('PATCH /api/incidents/:id/dispatch - successfully dispatches a ranger', async () => {
+    mockReq = {
+      params: { id: 'INC-2026-001' },
+      body: {
+        rangerId: 'RNG-001',
+        rangerName: 'Sgt. Tharaka Bandara',
+        notes: 'Deploy immediately',
+      },
+    };
+
+    await controller.dispatchIncident(mockReq as Request, mockRes as Response);
+
+    expect(statusMock).toHaveBeenCalledWith(200);
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          status: 'DISPATCHED',
+          assignedRangerId: 'RNG-001',
+        }),
+      })
+    );
+  });
+
+  it('PATCH /api/incidents/:id/dispatch - returns 400 when validation fails', async () => {
+    mockReq = {
+      params: { id: 'INC-2026-001' },
+      body: { rangerId: '' }, // missing rangerId
+    };
+
+    await controller.dispatchIncident(mockReq as Request, mockRes as Response);
+
+    expect(statusMock).toHaveBeenCalledWith(400);
+  });
+
+  it('PATCH /api/incidents/:id/dispatch - handles 500 server error', async () => {
+    jest.spyOn(service, 'dispatchRanger').mockRejectedValueOnce(new Error('Dispatch crash'));
+    mockReq = {
+      params: { id: 'INC-2026-001' },
+      body: { rangerId: 'RNG-001' },
+    };
+
+    await controller.dispatchIncident(mockReq as Request, mockRes as Response);
+
+    expect(statusMock).toHaveBeenCalledWith(500);
+  });
+
+  it('PATCH /api/incidents/:id/resolve - returns 400 when resolutionNotes is missing', async () => {
+    mockReq = {
+      params: { id: 'INC-2026-001' },
+      body: { resolutionNotes: '' },
+    };
+
+    await controller.resolveIncident(mockReq as Request, mockRes as Response);
+
+    expect(statusMock).toHaveBeenCalledWith(400);
+  });
+
+  it('PATCH /api/incidents/:id/resolve - handles 500 server error', async () => {
+    jest.spyOn(service, 'resolveIncident').mockRejectedValueOnce(new Error('Resolve crash'));
+    mockReq = {
+      params: { id: 'INC-2026-001' },
+      body: { resolutionNotes: 'Resolved' },
+    };
+
+    await controller.resolveIncident(mockReq as Request, mockRes as Response);
+
+    expect(statusMock).toHaveBeenCalledWith(500);
+  });
 });

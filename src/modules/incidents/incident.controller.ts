@@ -147,6 +147,65 @@ export class IncidentController {
       });
     }
   };
+
+  /**
+   * PATCH /api/incidents/:id/dispatch
+   * Dispatches field rangers to the reported incident coordinates.
+   */
+  public dispatchIncident = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const updated = await this.service.dispatchRanger(req.params.id, req.body);
+      res.status(200).json({
+        success: true,
+        message: `Field Ranger ${updated.assignedRangerName} dispatched to incident ${updated.id}.`,
+        data: updated,
+      });
+    } catch (error: any) {
+      if (error instanceof DomainValidationError) {
+        res.status(400).json({
+          success: false,
+          error: 'Dispatch Error',
+          message: error.message,
+        });
+        return;
+      }
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  };
+
+  /**
+   * PATCH /api/incidents/:id/resolve
+   * Resolves the incident on-scene with action debrief.
+   */
+  public resolveIncident = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const updated = await this.service.resolveIncident(req.params.id, req.body);
+      res.status(200).json({
+        success: true,
+        message: `Incident ${updated.id} successfully resolved and logged.`,
+        data: updated,
+      });
+    } catch (error: any) {
+      if (error instanceof DomainValidationError) {
+        res.status(400).json({
+          success: false,
+          error: 'Resolution Error',
+          message: error.message,
+        });
+        return;
+      }
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: error.message,
+      });
+    }
+  };
 }
 
 export const incidentController = new IncidentController();
+

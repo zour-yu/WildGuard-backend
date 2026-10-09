@@ -22,6 +22,7 @@ import {
   IncidentValidationStrategyContext,
   DomainValidationError,
 } from './incident.strategy';
+import { emitIncidentUpdated } from '../../sockets/alert.socket';
 
 export class IncidentService {
   private repository: IIncidentRepository;
@@ -166,6 +167,68 @@ export class IncidentService {
       throw new DomainValidationError('A valid incident ID string is required.');
     }
     return this.repository.findById(id);
+  }
+
+  /**
+   * Dispatches a field ranger / quick response team to the incident location.
+   */
+  public async dispatchRanger(
+    id: string,
+    dto: { rangerId: string; rangerName?: string; notes?: string }
+  ): Promise<Incident> {
+    if (!dto.rangerId) {
+      throw new DomainValidationError("Field 'rangerId' is required for dispatch.");
+    }
+
+    const existing = await this.repository.findById(id);
+    if (!existing) {
+      throw new DomainValidationError(`Incident with ID '${id}' not found.`);
+    }
+
+    const now = new Date();
+    const updated = await this.repository.update(id, {
+      assignedRangerId: dto.rangerId,
+      assignedRangerName: dto.rangerName || `Ranger ${dto.rangerId}`,
+      dispatchNotes: dto.notes,
+      dispatchedAt: now,
+      status: 'DISPATCHED',
+    });
+
+    if (updated) {
+      emitIncidentUpdated(updated);
+    }
+
+    return updated!;
+  }
+
+  /**
+   * Resolves an incident on-scene with ranger debrief and action report.
+   */
+  public async resolveIncident(
+    id: string,
+    dto: { resolutionNotes: string }
+  ): Promise<Incident> {
+    if (!dto.resolutionNotes || dto.resolutionNotes.trim().length === 0) {
+      throw new DomainValidationError("Field 'resolutionNotes' is required to resolve incident.");
+    }
+
+    const existing = await this.repository.findById(id);
+    if (!existing) {
+      throw new DomainValidationError(`Incident with ID '${id}' not found.`);
+    }
+
+    const now = new Date();
+    const updated = await this.repository.update(id, {
+      resolutionNotes: dto.resolutionNotes.trim(),
+      resolvedAt: now,
+      status: 'RESOLVED',
+    });
+
+    if (updated) {
+      emitIncidentUpdated(updated);
+    }
+
+    return updated!;
   }
 
   /**
