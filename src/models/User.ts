@@ -10,7 +10,7 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
   firebaseId: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  role: { type: String, required: true, enum: ['Liaison', 'Ranger', 'Admin'] },
+  role: { type: String, required: true, enum: ['Liaison', 'Ranger', 'Park Manager', 'Citizen'] },
   email: { type: String, required: true, unique: true },
 });
 

@@ -13,6 +13,7 @@ export interface IConflict extends Document {
   resolvedAt?: Date;
   handlerId?: mongoose.Types.ObjectId;
   notes?: string;
+  imageUrl?: string;
 }
 
 const ConflictSchema: Schema = new Schema({
@@ -27,7 +28,8 @@ const ConflictSchema: Schema = new Schema({
   reportedAt: { type: Date, default: Date.now },
   resolvedAt: { type: Date },
   handlerId: { type: Schema.Types.ObjectId, ref: 'User' },
-  notes: { type: String }
+  notes: { type: String },
+  imageUrl: { type: String }
 });
 
 export default mongoose.model<IConflict>('Conflict', ConflictSchema);
