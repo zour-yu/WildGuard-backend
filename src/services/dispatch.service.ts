@@ -236,7 +236,8 @@ export class DispatchService {
     alertId: string,
     rangerId: string,
     rangerName?: string,
-    notes?: string
+    notes?: string,
+    alertData?: any
   ): Promise<any> {
     const matchedRanger = MOCK_RANGERS.find((r) => r.rangerId === rangerId);
     const assignedName = rangerName || matchedRanger?.name || `Ranger ${rangerId}`;
@@ -254,13 +255,27 @@ export class DispatchService {
           alert.status = 'ACTIVE';
           if (notes) alert.notes = notes;
           updatedAlert = await alert.save();
+        } else if (alertData) {
+          // If not found in DB but we have alertData (e.g. Citizen Conflict), save it to DB!
+          const newAlert = new AlertDispatch({
+            ...alertData,
+            _id: alertId,
+            assignedRangerId: rangerId,
+            assignedRangerName: assignedName,
+            dispatchedAt: now,
+            status: 'ACTIVE',
+            notes: notes || '',
+            createdAt: alertData.createdAt || now,
+            updatedAt: now,
+          });
+          updatedAlert = await newAlert.save();
         }
       } catch (e) {
         console.warn('[DispatchService] Could not save assignRanger to DB:', e);
       }
     }
 
-    // In-memory update/sync
+    // In-memory update/sync (fallback)
     const memAlert = inMemoryDispatches.find((d) => d._id.toString() === alertId);
     if (memAlert) {
       memAlert.assignedRangerId = rangerId;
@@ -269,9 +284,11 @@ export class DispatchService {
       memAlert.status = 'ACTIVE';
       if (notes) memAlert.notes = notes;
       memAlert.updatedAt = now;
+      if (!memAlert.createdAt && alertData?.createdAt) memAlert.createdAt = alertData.createdAt;
       if (!updatedAlert) updatedAlert = memAlert;
     } else if (!updatedAlert) {
       updatedAlert = {
+        ...(alertData || {}),
         _id: alertId,
         assignedRangerId: rangerId,
         assignedRangerName: assignedName,
@@ -279,6 +296,7 @@ export class DispatchService {
         status: 'ACTIVE',
         notes: notes || '',
         updatedAt: now,
+        createdAt: alertData?.createdAt || now,
       };
       inMemoryDispatches.push(updatedAlert);
     }

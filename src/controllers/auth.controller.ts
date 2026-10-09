@@ -34,3 +34,20 @@ export const syncUser = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal server error', error });
   }
 };
+
+export const getMe = async (req: any, res: Response) => {
+  try {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const user = await User.findOne({ firebaseId });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found in database' });
+    }
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
