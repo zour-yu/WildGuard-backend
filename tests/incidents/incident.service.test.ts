@@ -30,6 +30,7 @@ describe('IncidentService (UC-01: Record Wildlife Incident)', () => {
     mockRepository = {
       create: jest.fn(),
       findById: jest.fn(),
+      update: jest.fn(),
       findAll: jest.fn(),
       createBatch: jest.fn(),
       count: jest.fn(),
@@ -434,6 +435,49 @@ describe('IncidentService (UC-01: Record Wildlife Incident)', () => {
 
     it('should throw validation error on invalid getIncidentById query', async () => {
       await expect(service.getIncidentById('')).rejects.toThrow(DomainValidationError);
+    });
+
+    it('should dispatch a ranger and transition status to DISPATCHED', async () => {
+      const realRepo = new InMemoryIncidentRepository(false);
+      const realService = new IncidentService(realRepo, validationContext);
+
+      const incident = await realService.recordIncident({
+        type: 'SNARE',
+        coordinates: [6.834, 80.988],
+        description: 'Wire snare near sector 4',
+        metadata: { riskLevel: 'HIGH' },
+      });
+
+      const dispatched = await realService.dispatchRanger(incident.id, {
+        rangerId: 'RNG-001',
+        rangerName: 'Sgt. Tharaka Bandara',
+        notes: 'Deploy immediately with wire cutter kit.',
+      });
+
+      expect(dispatched.status).toBe('DISPATCHED');
+      expect(dispatched.assignedRangerId).toBe('RNG-001');
+      expect(dispatched.assignedRangerName).toBe('Sgt. Tharaka Bandara');
+      expect(dispatched.dispatchNotes).toBe('Deploy immediately with wire cutter kit.');
+    });
+
+    it('should resolve an incident and transition status to RESOLVED', async () => {
+      const realRepo = new InMemoryIncidentRepository(false);
+      const realService = new IncidentService(realRepo, validationContext);
+
+      const incident = await realService.recordIncident({
+        type: 'SNARE',
+        coordinates: [6.834, 80.988],
+        description: 'Wire snare near sector 4',
+        metadata: { riskLevel: 'HIGH' },
+      });
+
+      const resolved = await realService.resolveIncident(incident.id, {
+        resolutionNotes: 'Snare neutralized and logged into evidence vault.',
+      });
+
+      expect(resolved.status).toBe('RESOLVED');
+      expect(resolved.resolutionNotes).toBe('Snare neutralized and logged into evidence vault.');
+      expect(resolved.resolvedAt).toBeDefined();
     });
   });
 });

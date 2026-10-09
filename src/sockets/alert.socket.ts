@@ -116,3 +116,13 @@ export function emitDispatchUpdate(data: DispatchUpdatePayload): void {
     io.emit('dispatch:updated', data);
   }
 }
+
+/**
+ * Broadcasts wildlife incident updates (recorded, dispatched, resolved).
+ */
+export function emitIncidentUpdated(data: any): void {
+  if (io) {
+    console.log(`[Socket.io] Emitting 'incident:updated' for ${data.id} -> ${data.status}`);
+    io.emit('incident:updated', data);
+  }
+}
